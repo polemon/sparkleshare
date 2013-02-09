@@ -1,0 +1,29 @@
+#!/bin/bash
+
+case "$1" in
+    start)
+        echo "== php-fpm =="
+        /usr/local/sbin/php-fpm
+        echo "== fcgiwrap == (general purpose, Perl)"
+        spawn-fcgi -u www-data -s /var/run/fcgiwrap.sock -P /var/run/fcgiwrap.pid -F 2 -- /usr/local/sbin/fcgiwrap
+        echo "== WSAPI == (Lua)"
+        spawn-fcgi -u www-data -s /var/run/lua-fcgi.sock -P /var/run/lua-fcgi.pid -F 2 -- /usr/bin/wsapi.fcgi
+        echo "== nginx =="
+        /usr/local/nginx/sbin/nginx
+        ;;
+    stop)
+        kill $(cat /var/run/lua-fcgi.pid)
+        kill $(cat /var/run/fcgiwrap.pid)
+        kill $(cat /usr/local/var/run/php-fpm.pid)
+        kill $(cat /var/run/nginx.pid)
+        ;;
+    restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}" >&2
+        exit 1
+        ;;
+esac
